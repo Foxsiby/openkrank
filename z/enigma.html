@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Enigma Machine Simulator</title>
+    <meta name="description" content="Interactive Enigma Machine M3 Simulator" />
+    
+    
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/image/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/image/favicon-16x16.png">
+    <link rel="shortcut icon" href="/static/image/favicon-32x32.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ES9S1X1QYC"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-ES9S1X1QYC');
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap');
+
+        :root {
+            --bakelite-black: #1a1a1a;
+            --bakelite-shine: #333;
+            --lamp-off: #4a4a4a;
+            --lamp-lit: #ffdd44;
+            --lamp-glow: #ffaa00;
+        }
+
+        body {
+            background-color: #2b2b2b;
+            font-family: 'Special Elite', monospace;
+            color: #d1d5db;
+            background-image: radial-gradient(#383838 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow-x: hidden;
+        }
+
+        /* Wooden Box Texture */
+        .enigma-case {
+            background: repeating-linear-gradient(45deg, #3d2b1f, #3d2b1f 10px, #4a3525 10px, #4a3525 20px);
+            box-shadow: inset 0 0 50px #000, 0 20px 50px rgba(0,0,0,0.8);
+            border: 4px solid #1a110d;
+            border-radius: 12px;
+        }
+        
+        @media (min-width: 768px) {
+            .enigma-case {
+                border-width: 12px;
+                box-shadow: inset 0 0 80px #000, 0 30px 60px rgba(0,0,0,0.8);
+            }
+        }
+
+        .metal-plate {
+            background: linear-gradient(135deg, #444 0%, #222 100%);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+            border: 1px solid #111;
+        }
+
+        /* Keys & Lamps - Responsive Sizes */
+        .key-btn, .lamp {
+            /* Mobile Default */
+            width: 28px; 
+            height: 28px;
+            font-size: 0.75rem;
+            border-width: 2px;
+            
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-family: sans-serif;
+            transition: all 0.1s;
+            user-select: none;
+        }
+
+        /* Desktop Sizes */
+        @media (min-width: 768px) {
+            .key-btn, .lamp {
+                width: 48px;
+                height: 48px;
+                font-size: 1.1rem;
+                border-width: 4px;
+            }
+        }
+
+        .key-btn {
+            background: radial-gradient(circle at 30% 30%, #444, #111);
+            border-color: #000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.2);
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        .key-btn:active, .key-btn.active {
+            transform: translateY(2px);
+            background: radial-gradient(circle at 30% 30%, #333, #000);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.5);
+        }
+
+        .lamp {
+            background-color: #222;
+            border-color: #555;
+            color: rgba(255,255,255,0.2);
+            box-shadow: inset 0 0 5px #000;
+        }
+
+        .lamp.lit {
+            background-color: var(--lamp-lit);
+            color: #333;
+            box-shadow: 0 0 10px var(--lamp-glow), 0 0 20px var(--lamp-glow), inset 0 0 5px rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 2px #fff;
+            border-color: #ffd700;
+        }
+
+        /* Rotor Windows */
+        .rotor-window {
+            background: #e8e8e8;
+            color: #000;
+            font-family: 'Courier Prime', monospace;
+            font-weight: bold;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            border: 2px solid #666;
+            border-radius: 4px;
+        }
+
+        /* Plugboard Sockets */
+        .socket {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #111;
+            border: 2px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            font-size: 0; /* Hide text on super small screens inside socket */
+            color: #888;
+            box-shadow: inset 0 2px 4px #000;
+        }
+
+        @media (min-width: 768px) {
+            .socket {
+                width: 38px;
+                height: 38px;
+                font-size: 0.8rem;
+                border-width: 3px;
+            }
+        }
+        
+        .socket::before, .socket::after {
+            content: '';
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #000;
+            border-radius: 50%;
+            top: 65%;
+        }
+        .socket::before { left: 25%; }
+        .socket::after { right: 25%; }
+
+        .socket.connected {
+            background: #2a2a2a;
+            border-color: #d97706;
+        }
+
+        .socket.selected {
+            border-color: #facc15;
+            box-shadow: 0 0 8px #facc15;
+        }
+
+        /* Controls */
+        select {
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 2px;
+            font-family: monospace;
+            border-radius: 4px;
+        }
+        
+        input[type="number"] {
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        /* Paper Tape Fields */
+        .paper-field {
+            background-color: #f3f0e1;
+            color: #333;
+            font-family: 'Courier Prime', monospace;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            min-height: 40px;
+            font-size: 1.1rem;
+            letter-spacing: 0.1em;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        @media (min-width: 768px) {
+            .paper-field {
+                min-height: 60px;
+                font-size: 1.4rem;
+                padding: 12px;
+            }
+        }
+        
+        .debug-panel {
+            font-family: 'Courier Prime', monospace;
+            background: #111;
+            color: #4ade80;
+            border: 1px solid #333;
+            font-size: 0.75rem;
+        }
+
+        .debug-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #222;
+            padding: 4px 0;
+        }
+        .debug-row:last-child { border-bottom: none; }
+        .debug-val { font-weight: bold; color: #fff; }
+
+        /* Modern Scrollbar Styles */
+        .paper-field::-webkit-scrollbar,
+        #debug-content::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .paper-field::-webkit-scrollbar-track,
+        #debug-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .paper-field::-webkit-scrollbar-thumb {
+            background: #999;
+            border-radius: 10px;
+            border: 2px solid #f3f0e1;
+        }
+
+        .paper-field::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        #debug-content::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 10px;
+            border: 2px solid #111;
+        }
+
+        #debug-content::-webkit-scrollbar-thumb:hover {
+            background: #22c55e;
+        }
+
+        /* Firefox Scrollbar */
+        .paper-field,
+        #debug-content {
+            scrollbar-width: thin;
+        }
+
+        .paper-field {
+            scrollbar-color: #999 rgba(0, 0, 0, 0.1);
+        }
+
+        #debug-content {
+            scrollbar-color: #4ade80 #111;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-2 md:p-8 bg-[#2b2b2b]">
+
+    <!-- Header -->
+    <div class="my-9 text-center">
+        <h1 class="text-2xl md:text-5xl font-bold tracking-widest text-gray-200 mt-5" style="text-shadow: 2px 2px 0 #000;">ENIGMA SIMULATOR</h1>
+        <p>Foxsiby by Ikang</p>
+        <p class="text-[15px] text-gray-400 mt-2">
+            Inspired by <a href="https://www.101computing.net/enigma-machine-emulator/" class="hover:text-gray-400" target="_blank" rel="noopener noreferrer">101computing.net</a>
+        </p>
+        <p class="text-[15px] text-gray-400 mt-2">
+            And <a href="https://fajrul.com" class="hover:text-gray-400" target="_blank" rel="noopener noreferrer">Fajrul.com</a>
+        </p>
+    </div>
+
+    <!-- Main Machine Container -->
+    <div class="enigma-case p-3 md:p-8 w-full max-w-4xl relative">
+        
+        <!-- Top Section: Rotors & Settings -->
+        <div class="metal-plate rounded-lg p-3 md:p-5 mb-4 md:mb-8 flex flex-col md:flex-row justify-between items-center gap-4 relative">
+            
+            <!-- Rotor Control Group -->
+            <div class="flex flex-wrap justify-center items-end gap-2 md:gap-6 w-full">
+                
+                <!-- Reflector Desktop -->
+                <div class="hidden md:flex flex-col items-center justify-center p-1">
+                    <label class="text-xs uppercase text-gray-400 mb-1">UKW</label>
+                    <select id="reflector-select-desktop" class="text-sm w-24 h-8">
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                </div>
+
+                <!-- Rotors Wrapper -->
+                <div class="flex gap-1 md:gap-4 bg-black/30 p-2 rounded-lg border border-white/5">
+                    <!-- Rotor Unit (Left) -->
+                    <div class="flex flex-col items-center">
+                        <select id="rotor-l-type" class="rotor-type text-[10px] md:text-xs w-10 md:w-16 mb-1 md:mb-2"><option value="I" selected>I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option></select>
+                        <div class="flex flex-col items-center bg-black p-0.5 md:p-1 rounded border border-gray-700 shadow-lg">
+                            <button class="text-gray-400 hover:text-white text-[10px] md:text-sm py-1 w-full" onclick="adjustRotor(0, 1)">▲</button>
+                            <div id="rotor-l-pos" class="rotor-window w-6 h-6 md:w-12 md:h-12 flex items-center justify-center text-sm md:text-2xl">A</div>
+                            <button class="text-gray-400 hover:text-white text-[10px] md:text-sm py-1 w-full" onclick="adjustRotor(0, -1)">▼</button>
+                        </div>
+                        <div class="flex items-center gap-1 mt-1 md:mt-2">
+                            <span class="text-[8px] md:text-[10px] text-gray-500 uppercase">Ring</span>
+                            <input type="number" id="rotor-l-ring" min="1" max="26" value="1" class="text-center text-[9px] md:text-xs h-4 md:h-6 w-8 md:w-10">
+                        </div>
+                    </div>
+
+                    <!-- Rotor Unit (Middle) -->
+                    <div class="flex flex-col items-center">
+                        <select id="rotor-m-type" class="rotor-type text-[10px] md:text-xs w-10 md:w-16 mb-1 md:mb-2"><option value="I">I</option><option value="II" selected>II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option></select>
+                        <div class="flex flex-col items-center bg-black p-0.5 md:p-1 rounded border border-gray-700 shadow-lg">
+                            <button class="text-gray-400 hover:text-white text-[10px] md:text-sm py-1 w-full" onclick="adjustRotor(1, 1)">▲</button>
+                            <div id="rotor-m-pos" class="rotor-window w-6 h-6 md:w-12 md:h-12 flex items-center justify-center text-sm md:text-2xl">A</div>
+                            <button class="text-gray-400 hover:text-white text-[10px] md:text-sm py-1 w-full" onclick="adjustRotor(1, -1)">▼</button>
+                        </div>
+                        <div class="flex items-center gap-1 mt-1 md:mt-2">
+                            <span class="text-[8px] md:text-[10px] text-gray-500 uppercase">Ring</span>
+                            <input type="number" id="rotor-m-ring" min="1" max="26" value="1" class="text-center text-[9px] md:text-xs h-4 md:h-6 w-8 md:w-10">
+                        </div>
+                    </div>
+
+                    <!-- Rotor Unit (Right) -->
+                    <div class="flex flex-col items-center">
+                        <select id="rotor-r-type" class="rotor-type text-[10px] md:text-xs w-10 md:w-16 mb-1 md:mb-2"><option value="I">I</option><option value="II">II</option><option value="III" selected>III</option><option value="IV">IV</option><option value="V">V</option></select>
+                        <div class="flex flex-col items-center bg-black p-0.5 md:p-1 rounded border border-gray-700 shadow-lg">
+                            <button class="text-gray-400 hover:text-white text-[10px] md:text-sm py-1 w-full" onclick="adjustRotor(2, 1)">▲</button>
+                            <div id="rotor-r-pos" class="rotor-window w-6 h-6 md:w-12 md:h-12 flex items-center justify-center text-sm md:text-2xl">A</div>
+                            <button class="text-gray-400 hover:text-white text-[10px] md:text-sm py-1 w-full" onclick="adjustRotor(2, -1)">▼</button>
+                        </div>
+                        <div class="flex items-center gap-1 mt-1 md:mt-2">
+                            <span class="text-[8px] md:text-[10px] text-gray-500 uppercase">Ring</span>
+                            <input type="number" id="rotor-r-ring" min="1" max="26" value="1" class="text-center text-[9px] md:text-xs h-4 md:h-6 w-8 md:w-10">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Desktop -->
+                <div class="hidden md:flex flex-col gap-2 ml-4 justify-center h-full">
+                    <button onclick="resetMachine()" class="px-3 py-2 bg-red-900 hover:bg-red-800 text-white text-xs uppercase tracking-wider rounded border border-red-950 shadow transition-colors">Reset</button>
+                    <button onclick="clearText()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs uppercase tracking-wider rounded border border-gray-900 shadow transition-colors">Clear</button>
+                </div>
+            </div>
+
+            <!-- Mobile: UKW + Buttons Row (Below Rotors) -->
+            <div class="flex md:hidden justify-between items-center w-full gap-2 mt-4">
+                <!-- Reflector -->
+                <div class="flex items-center justify-center gap-2 p-1">
+                    <select id="reflector-select-mobile" class="text-xs w-16 h-8">
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                    <label class="text-[9px] uppercase text-gray-400">UKW</label>
+                </div>
+
+                <!-- Action Buttons Mobile -->
+                <div class="flex gap-2">
+                    <button onclick="resetMachine()" class="px-3 py-2 bg-red-900 hover:bg-red-800 text-white text-[9px] uppercase tracking-wider rounded border border-red-950 shadow transition-colors">Reset</button>
+                    <button onclick="clearText()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-[9px] uppercase tracking-wider rounded border border-gray-900 shadow transition-colors">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lampboard -->
+        <div class="mb-6 flex justify-center">
+            <div id="lampboard" class="grid gap-1 md:gap-3 p-2 md:p-4 bg-black/40 rounded-xl border border-white/5 w-full max-w-2xl">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Keyboard -->
+        <div class="mb-6 flex justify-center">
+            <div id="keyboard" class="grid gap-1 md:gap-3 p-2 md:p-4 bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl border-t border-gray-600 shadow-2xl w-full max-w-2xl">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Plugboard -->
+        <div class="metal-plate rounded-lg p-2 md:p-4 relative min-h-[140px] md:min-h-[200px]">
+            <div class="flex justify-between items-center mb-2 px-1">
+                <h3 class="text-[10px] md:text-sm uppercase tracking-widest text-gray-400 font-bold">Steckerbrett (Plugboard)</h3>
+                <span id="connections-list" class="text-[10px] md:text-xs font-mono text-yellow-500 overflow-hidden whitespace-nowrap max-w-[150px] md:max-w-none text-ellipsis"></span>
+            </div>
+            
+            <div class="relative w-full max-w-2xl mx-auto">
+                 <!-- Plugboard Container -->
+                <div id="plugboard" class="flex flex-col items-center gap-2 md:gap-4 relative z-20">
+                    <!-- Generated by JS -->
+                </div>
+                 <!-- SVG Layer for Cables -->
+                <svg id="cables-layer" class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 overflow-visible"></svg>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Output & Input Container -->
+    <div class="w-full max-w-4xl mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Input Box -->
+        <div class="flex flex-col">
+            <label class="text-[10px] md:text-xs text-gray-500 uppercase mb-1 ml-1 font-bold">Plaintext (Input)</label>
+            <div id="input-log" class="paper-field"></div>
+        </div>
+
+        <!-- Output Box -->
+        <div class="flex flex-col">
+            <label class="text-[10px] md:text-xs text-gray-500 uppercase mb-1 ml-1 font-bold">Ciphertext (Output)</label>
+            <div id="output-log" class="paper-field font-bold text-black"></div>
+        </div>
+
+        <!-- Encryption Path Log -->
+        <div class="md:col-span-2 debug-panel rounded p-3 shadow-inner bg-black border border-gray-800">
+            <div class="flex justify-between items-center text-[10px] md:text-xs text-gray-400 border-b border-gray-700 mb-2 pb-2 uppercase tracking-wide cursor-pointer hover:text-white" onclick="toggleDebug()">
+                <span class="font-bold">Encryption Path Debugger</span>
+                <span id="debug-arrow">▼</span>
+            </div>
+            <div id="debug-content" class="space-y-1 text-xs pe-3 md:text-sm font-mono max-h-64 overflow-y-auto">
+                <div class="text-gray-600 italic text-center mt-2">Start typing to see the signal path...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 mb-4 text-center text-gray-400 text-xs">
+        <p>Enigma Machine Simulator</p>
+    </div>
+
+    <!-- Audio for typewriter sound -->
+    <audio id="typewriter-sound" preload="auto">
+        <source src="no, paudio/typewriter.mp3' %}" type="audio/mpeg">
+    </audio>
+
+    <script>
+        /**
+         * Enigma Machine Constants & Configuration
+         */
+        const ROTOR_DATA = {
+            'I':   { wiring: 'EKMFLGDQVZNTOWYHXUSPAIBRCJ', notch: 'Q' },
+            'II':  { wiring: 'AJDKSIRUXBLHWTMCQGZNPYFVOE', notch: 'E' },
+            'III': { wiring: 'BDFHJLCPRTXVZNYEIWGAKMUSQO', notch: 'V' },
+            'IV':  { wiring: 'ESOVPZJAYQUIRHXLNFTGKDCMWB', notch: 'J' },
+            'V':   { wiring: 'VZBRGITYUPSDNHLXAWMJQOFECK', notch: 'Z' }
+        };
+
+        const REFLECTOR_DATA = {
+            'B': { wiring: 'YRUHQSLDPXNGOKMIEBFZCWVJAT' },
+            'C': { wiring: 'FVPJIAOYEDRZXWGCTKUQSBNMHL' }
+        };
+
+        const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const KEYBOARD_LAYOUT = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+
+        /**
+         * State Management
+         */
+        let rotors = [
+            { type: 'I', pos: 0, ring: 0, name: 'Left' },
+            { type: 'II', pos: 0, ring: 0, name: 'Middle' },
+            { type: 'III', pos: 0, ring: 0, name: 'Right' }
+        ];
+        let reflector = 'B';
+        let plugboard = new Map(); 
+        let selectedPlug = null;
+
+        // UI References
+        const els = {
+            rotorLType: document.getElementById('rotor-l-type'),
+            rotorMType: document.getElementById('rotor-m-type'),
+            rotorRType: document.getElementById('rotor-r-type'),
+            rotorLPos: document.getElementById('rotor-l-pos'),
+            rotorMPos: document.getElementById('rotor-m-pos'),
+            rotorRPos: document.getElementById('rotor-r-pos'),
+            rotorLRing: document.getElementById('rotor-l-ring'),
+            rotorMRing: document.getElementById('rotor-m-ring'),
+            rotorRRing: document.getElementById('rotor-r-ring'),
+            reflectorMobile: document.getElementById('reflector-select-mobile'),
+            reflectorDesktop: document.getElementById('reflector-select-desktop'),
+            lampboard: document.getElementById('lampboard'),
+            keyboard: document.getElementById('keyboard'),
+            plugboard: document.getElementById('plugboard'),
+            cables: document.getElementById('cables-layer'),
+            inputLog: document.getElementById('input-log'),
+            outputLog: document.getElementById('output-log'),
+            connList: document.getElementById('connections-list'),
+            debug: document.getElementById('debug-content')
+        };
+
+        /**
+         * Core Logic
+         */
+        const l2i = char => char.charCodeAt(0) - 65;
+        const i2l = idx => String.fromCharCode(((idx % 26 + 26) % 26) + 65);
+
+        function stepRotors() {
+            const rRight = rotors[2];
+            const rMid = rotors[1];
+            const rLeft = rotors[0];
+
+            const rightNotch = ROTOR_DATA[rRight.type].notch.indexOf(i2l(rRight.pos)) !== -1;
+            const midNotch = ROTOR_DATA[rMid.type].notch.indexOf(i2l(rMid.pos)) !== -1;
+            
+            let stepMid = rightNotch || midNotch;
+            let stepLeft = midNotch;
+
+            rRight.pos = (rRight.pos + 1) % 26;
+            if (stepMid) rMid.pos = (rMid.pos + 1) % 26;
+            if (stepLeft) rLeft.pos = (rLeft.pos + 1) % 26;
+
+            updateRotorDisplay();
+        }
+
+        function forwardCrypt(index, rotorObj) {
+            const data = ROTOR_DATA[rotorObj.type];
+            const offset = rotorObj.pos - rotorObj.ring;
+            const inputIndex = (index + offset + 26) % 26;
+            const wiringChar = data.wiring[inputIndex];
+            const outputIndex = l2i(wiringChar);
+            const finalIndex = (outputIndex - offset + 26) % 26;
+            return { index: finalIndex, char: i2l(finalIndex) };
+        }
+
+        function reverseCrypt(index, rotorObj) {
+            const data = ROTOR_DATA[rotorObj.type];
+            const offset = rotorObj.pos - rotorObj.ring;
+            const inputIndex = (index + offset + 26) % 26;
+            const wiringChar = i2l(inputIndex);
+            const pinIndex = data.wiring.indexOf(wiringChar);
+            const finalIndex = (pinIndex - offset + 26) % 26;
+            return { index: finalIndex, char: i2l(finalIndex) };
+        }
+
+        function plugboardSwap(char) {
+            return plugboard.get(char) || char;
+        }
+
+        function encryptCharDetailed(inputChar) {
+            stepRotors();
+
+            const positions = rotors.map(r => i2l(r.pos)).join('');
+            const log = [];
+
+            let current = inputChar;
+            log.push({ stage: 'Keyboard Input', val: current });
+            log.push({ stage: 'Rotors Position', val: positions });
+
+            let pbIn = plugboardSwap(current);
+            log.push({ stage: 'Plugboard Encryption', val: `${current} → ${pbIn}` });
+
+            let signal = l2i(pbIn);
+
+            // Forward
+            let res = forwardCrypt(signal, rotors[2]); 
+            signal = res.index;
+            log.push({ stage: 'Wheel 3 Encryption', val: res.char });
+
+            res = forwardCrypt(signal, rotors[1]); 
+            signal = res.index;
+            log.push({ stage: 'Wheel 2 Encryption', val: res.char });
+
+            res = forwardCrypt(signal, rotors[0]); 
+            signal = res.index;
+            log.push({ stage: 'Wheel 1 Encryption', val: res.char });
+
+            // Reflector
+            const refData = REFLECTOR_DATA[reflector];
+            const refChar = refData.wiring[signal];
+            signal = l2i(refChar);
+            log.push({ stage: 'Reflector Encryption', val: refChar });
+
+            // Backward
+            res = reverseCrypt(signal, rotors[0]); 
+            signal = res.index;
+            log.push({ stage: 'Wheel 1 Encryption', val: res.char });
+
+            res = reverseCrypt(signal, rotors[1]); 
+            signal = res.index;
+            log.push({ stage: 'Wheel 2 Encryption', val: res.char });
+
+            res = reverseCrypt(signal, rotors[2]); 
+            signal = res.index;
+            log.push({ stage: 'Wheel 3 Encryption', val: res.char });
+
+            let prePbOut = i2l(signal);
+            let finalChar = plugboardSwap(prePbOut);
+            log.push({ stage: 'Plugboard Encryption', val: `${prePbOut} → ${finalChar}` });
+            
+            log.push({ stage: 'Output (Lampboard)', val: finalChar });
+
+            return { char: finalChar, log: log };
+        }
+
+        /**
+         * UI Construction
+         */
+        function initUI() {
+            // Generate Keyboards and Lampboards
+            KEYBOARD_LAYOUT.forEach(row => {
+                // Lampboard Row
+                const lampRow = document.createElement('div');
+                lampRow.className = 'flex justify-center gap-1 md:gap-3';
+                // Keyboard Row
+                const keyRow = document.createElement('div');
+                keyRow.className = 'flex justify-center gap-1 md:gap-3';
+                // Plugboard Row
+                const plugRow = document.createElement('div');
+                plugRow.className = 'flex justify-center gap-1.5 md:gap-4'; 
+
+                for (let char of row) {
+                    // Lamp
+                    const lamp = document.createElement('div');
+                    lamp.className = 'lamp';
+                    lamp.id = `lamp-${char}`;
+                    lamp.textContent = char;
+                    lampRow.appendChild(lamp);
+
+                    // Key
+                    const key = document.createElement('div');
+                    key.className = 'key-btn';
+                    key.id = `key-${char}`;
+                    key.textContent = char;
+                    
+                    const press = (e) => { e.preventDefault(); handleKeyDown(char); };
+                    const release = (e) => { e.preventDefault(); handleKeyUp(char); };
+                    
+                    key.onmousedown = press;
+                    key.onmouseup = release;
+                    key.onmouseleave = release;
+                    key.ontouchstart = press;
+                    key.ontouchend = release;
+
+                    keyRow.appendChild(key);
+
+                    // Socket 
+                    const socketWrapper = document.createElement('div');
+                    socketWrapper.className = 'flex flex-col items-center';
+                    
+                    const socketLabel = document.createElement('div');
+                    socketLabel.className = 'text-[8px] md:text-[10px] text-gray-500 font-sans mb-0.5';
+                    socketLabel.textContent = char;
+
+                    const socket = document.createElement('div');
+                    socket.className = 'socket';
+                    socket.id = `socket-${char}`;
+                    socket.onclick = () => handleSocketClick(char);
+
+                    socketWrapper.appendChild(socketLabel);
+                    socketWrapper.appendChild(socket);
+                    plugRow.appendChild(socketWrapper);
+                }
+                els.lampboard.appendChild(lampRow);
+                els.keyboard.appendChild(keyRow);
+                els.plugboard.appendChild(plugRow);
+            });
+
+            // Bind Settings
+            els.rotorLType.onchange = (e) => rotors[0].type = e.target.value;
+            els.rotorMType.onchange = (e) => rotors[1].type = e.target.value;
+            els.rotorRType.onchange = (e) => rotors[2].type = e.target.value;
+            
+            els.rotorLRing.onchange = (e) => rotors[0].ring = parseInt(e.target.value) - 1;
+            els.rotorMRing.onchange = (e) => rotors[1].ring = parseInt(e.target.value) - 1;
+            els.rotorRRing.onchange = (e) => rotors[2].ring = parseInt(e.target.value) - 1;
+
+            // Sync both reflector selects
+            els.reflectorMobile.onchange = (e) => {
+                reflector = e.target.value;
+                els.reflectorDesktop.value = e.target.value;
+            };
+            els.reflectorDesktop.onchange = (e) => {
+                reflector = e.target.value;
+                els.reflectorMobile.value = e.target.value;
+            };
+
+            document.addEventListener('keydown', (e) => {
+                const char = e.key.toUpperCase();
+                if (ALPHABET.includes(char) && !e.repeat && !e.ctrlKey && !e.metaKey) {
+                    handleKeyDown(char);
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const char = e.key.toUpperCase();
+                if (ALPHABET.includes(char)) handleKeyUp(char);
+            });
+
+            updateRotorDisplay();
+        }
+
+        window.adjustRotor = function(idx, delta) {
+            rotors[idx].pos = (rotors[idx].pos + delta + 26) % 26;
+            updateRotorDisplay();
+        };
+
+        function updateRotorDisplay() {
+            els.rotorLPos.textContent = i2l(rotors[0].pos);
+            els.rotorMPos.textContent = i2l(rotors[1].pos);
+            els.rotorRPos.textContent = i2l(rotors[2].pos);
+        }
+
+        let isKeyPressed = false;
+        let activeLamp = null;
+        const typewriterSound = document.getElementById('typewriter-sound');
+
+        function handleKeyDown(char) {
+            if (isKeyPressed) return;
+            isKeyPressed = true;
+
+            // Play typewriter sound
+            if (typewriterSound) {
+                typewriterSound.currentTime = 0; // Reset to start for rapid key presses
+                typewriterSound.play().catch(e => console.log('Audio play failed:', e));
+            }
+
+            const keyEl = document.getElementById(`key-${char}`);
+            if(keyEl) keyEl.classList.add('active');
+
+            const result = encryptCharDetailed(char);
+            
+            activeLamp = document.getElementById(`lamp-${result.char}`);
+            if(activeLamp) activeLamp.classList.add('lit');
+
+            updateLogs(char, result.char);
+            updateDebugLog(result.log);
+        }
+
+        function handleKeyUp(char) {
+            isKeyPressed = false;
+            const keyEl = document.getElementById(`key-${char}`);
+            if(keyEl) keyEl.classList.remove('active');
+            
+            if(activeLamp) {
+                activeLamp.classList.remove('lit');
+                activeLamp = null;
+            }
+        }
+
+        // New Input/Output Log Logic
+        function updateLogs(inChar, outChar) {
+            // Append to Input
+            const inSpan = document.createElement('span');
+            inSpan.textContent = inChar;
+            els.inputLog.appendChild(inSpan);
+            els.inputLog.scrollLeft = els.inputLog.scrollWidth;
+
+            // Append to Output
+            const outSpan = document.createElement('span');
+            outSpan.textContent = outChar;
+            els.outputLog.appendChild(outSpan);
+            els.outputLog.scrollLeft = els.outputLog.scrollWidth;
+        }
+
+        // Toggle Debug Function (Fix for ReferenceError)
+        window.toggleDebug = function() {
+            const content = document.getElementById('debug-content');
+            content.classList.toggle('hidden');
+            
+            const arrow = document.getElementById('debug-arrow');
+            arrow.textContent = content.classList.contains('hidden') ? '▼' : '▲';
+        }
+
+        function updateDebugLog(logData) {
+            els.debug.innerHTML = '';
+            
+            // Detailed Table View
+            logData.forEach((entry, idx) => {
+                const row = document.createElement('div');
+                row.className = 'debug-row';
+                
+                const stage = document.createElement('span');
+                stage.className = 'text-gray-500';
+                stage.textContent = entry.stage;
+
+                const val = document.createElement('span');
+                val.className = 'debug-val';
+                val.textContent = entry.val;
+
+                row.appendChild(stage);
+                row.appendChild(val);
+                els.debug.appendChild(row);
+            });
+        }
+
+        window.clearText = function() {
+            els.inputLog.innerHTML = '';
+            els.outputLog.innerHTML = '';
+            els.debug.innerHTML = '<div class="text-gray-600 italic text-center mt-2">Log cleared.</div>';
+        }
+
+        window.resetMachine = function() {
+            rotors.forEach(r => r.pos = 0);
+            updateRotorDisplay();
+            clearText();
+        }
+
+        function handleSocketClick(char) {
+            const sockEl = document.getElementById(`socket-${char}`);
+
+            if (plugboard.has(char)) {
+                const partner = plugboard.get(char);
+                plugboard.delete(char);
+                plugboard.delete(partner);
+                document.getElementById(`socket-${char}`).classList.remove('connected');
+                document.getElementById(`socket-${partner}`).classList.remove('connected');
+                drawCables();
+                updateConnectionList();
+                return;
+            }
+
+            if (selectedPlug === null) {
+                selectedPlug = char;
+                sockEl.classList.add('selected');
+            } else if (selectedPlug === char) {
+                selectedPlug = null;
+                sockEl.classList.remove('selected');
+            } else {
+                plugboard.set(selectedPlug, char);
+                plugboard.set(char, selectedPlug);
+                
+                document.getElementById(`socket-${selectedPlug}`).classList.remove('selected');
+                document.getElementById(`socket-${selectedPlug}`).classList.add('connected');
+                sockEl.classList.add('connected');
+                
+                selectedPlug = null;
+                drawCables();
+                updateConnectionList();
+            }
+        }
+
+        function updateConnectionList() {
+            const pairs = [];
+            const seen = new Set();
+            for (let [k, v] of plugboard) {
+                if(!seen.has(k) && !seen.has(v)) {
+                    pairs.push(`${k}${v}`);
+                    seen.add(k);
+                    seen.add(v);
+                }
+            }
+            els.connList.textContent = pairs.join(' ');
+        }
+
+        function drawCables() {
+            els.cables.innerHTML = '';
+            const containerRect = els.cables.getBoundingClientRect(); 
+            const seen = new Set();
+
+            for (let [a, b] of plugboard) {
+                if(seen.has(a) || seen.has(b)) continue;
+                seen.add(a); seen.add(b);
+
+                const elA = document.getElementById(`socket-${a}`);
+                const elB = document.getElementById(`socket-${b}`);
+                
+                if (!elA || !elB) continue;
+
+                const rectA = elA.getBoundingClientRect();
+                const rectB = elB.getBoundingClientRect();
+                
+                const x1 = (rectA.left + rectA.width/2) - containerRect.left;
+                const y1 = (rectA.top + rectA.height/2) - containerRect.top;
+                const x2 = (rectB.left + rectB.width/2) - containerRect.left;
+                const y2 = (rectB.top + rectB.height/2) - containerRect.top;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const mx = (x1 + x2) / 2;
+                const my = Math.max(y1, y2) + 30; // Curve dip
+                
+                const d = `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
+                
+                path.setAttribute('d', d);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', '#d97706');
+                path.setAttribute('stroke-width', '3');
+                path.setAttribute('stroke-linecap', 'round');
+                path.setAttribute('filter', 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))');
+                
+                els.cables.appendChild(path);
+            }
+        }
+
+        window.onresize = drawCables;
+        initUI();
+
+    </script>
+</body>
+</html>
